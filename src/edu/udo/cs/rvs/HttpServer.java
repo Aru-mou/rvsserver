@@ -11,7 +11,7 @@ import java.net.*;
  * Ausnahmen (Exceptions) sinnvoll zu behandeln.
  *
  * @author Kamil Czaja, 201147
- * @author Christian Goltz, xxxxxx
+ * @author Christian Goltz, 201244
  */
 public class HttpServer
 {
