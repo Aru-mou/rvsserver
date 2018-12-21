@@ -33,9 +33,8 @@ import java.util.zip.*;
  * Paketen benutzen. Achten Sie darauf, Ihren Code zu dokumentieren und moegliche
  * Ausnahmen (Exceptions) sinnvoll zu behandeln.
  *
- * @author Vorname Nachname, Matrikelnummer
- * @author Vorname Nachname, Matrikelnummer
- * @author Vorname Nachname, Matrikelnummer
+ * @author Kamil Czaja, 201147
+ * @author Christian Goltz, xxxxxx
  */
 public class HttpServer
 {
@@ -44,11 +43,16 @@ public class HttpServer
      * Dieses Attribut gibt den Basis-Ordner fuer den HTTP-Server an.
      */
     private static final File wwwroot = new File("wwwroot");
+
     
     /**
      * Der Port, auf dem der HTTP-Server lauschen soll.
      */
     private int port;
+    private final String ip = "127.0.0.1";
+    private final InetSocketAddress address = new InetSocketAddress(this.ip, this.port);
+
+    private ServerSocket serverSocket;
 
     /**
      * Beispiel Dokumentation fuer diesen Konstruktor:
@@ -64,12 +68,27 @@ public class HttpServer
     }
     
     /**
-     * Beispiel Dokumentation fuer diese Methode:
-     * Diese Methode oeffnet einen Port, auf dem der HTTP-Server lauscht.
-     * Eingehende Verbindungen werden in einem eigenen Thread behandelt.
+
      */
-    public void startServer()
+    public void startServer() throws IOException
     {
-    	throw new RuntimeException("Not yet implemented!");
+        ConnectionHandler client;
+        Thread thread;
+
+        this.serverSocket = new ServerSocket(this.port, -1);
+        this.serverSocket.bind(this.address);
+
+        while (true)
+        {
+            Socket incoming = this.serverSocket.accept();
+            client = new ConnectionHandler(incoming);
+            thread = new Thread(client);
+            thread.start();
+        }
+    }
+
+    protected void finalize() throws IOException
+    {
+        this.serverSocket.close();
     }
 }
