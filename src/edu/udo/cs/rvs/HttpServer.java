@@ -62,7 +62,7 @@ public class HttpServer
      * @param port
      *            der Port auf dem der HTTP-Server lauschen soll
      */
-    public HttpServer(int port)
+    HttpServer(int port)
     {
         this.port = port;
     }
@@ -70,20 +70,27 @@ public class HttpServer
     /**
 
      */
-    public void startServer() throws IOException
+    void startServer()
     {
-        ConnectionHandler client;
-        Thread thread;
-
-        this.serverSocket = new ServerSocket(this.port, -1);
-        this.serverSocket.bind(this.address);
-
-        while (true)
+        try
         {
-            Socket incoming = this.serverSocket.accept();
-            client = new ConnectionHandler(incoming);
-            thread = new Thread(client);
-            thread.start();
+            ConnectionHandler client;
+            Thread thread;
+
+            this.serverSocket = new ServerSocket(this.port);
+            this.serverSocket.bind(this.address);
+
+            while (true)
+            {
+                Socket incoming = this.serverSocket.accept();
+                client = new ConnectionHandler(incoming);
+                thread = new Thread(client);
+                thread.start();
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
     }
 
