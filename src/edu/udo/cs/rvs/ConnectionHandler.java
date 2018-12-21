@@ -55,7 +55,6 @@ public class ConnectionHandler implements Runnable
         // TODO: 2018-12-21 input stream/outputstream, parse input, create output, close socket
 
 
-        .,l,öl.,
     }
 
 
