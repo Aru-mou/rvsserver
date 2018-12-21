@@ -31,14 +31,28 @@ public class ConnectionHandler implements Runnable
 {
     private Socket client;
 
+    /**
+     * Constructor.
+     * Sets this class attribute to the connected client
+     *
+     * @param client
+     *              the client socket provided by the server socked through s_socket.accept()
+     */
     ConnectionHandler(Socket client)
     {
         this.client = client;
     }
 
+    /**
+     * This thread's main method.
+     * Handles the incoming client connection, listens to input, responds to input and finally closes
+     * the connection socket.
+     *
+     * @see java.lang.Runnable
+     */
     public void run()
     {
-
+        // TODO: 2018-12-21 input stream/outputstream, parse input, create output, close socket
     }
 
 

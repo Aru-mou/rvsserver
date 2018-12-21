@@ -2,30 +2,7 @@ package edu.udo.cs.rvs;
 
 import java.io.*;
 import java.lang.*;
-import java.lang.annotation.*;
-import java.lang.invoke.*;
-import java.lang.ref.*;
-import java.lang.reflect.*;
 import java.net.*;
-import java.nio.*;
-import java.nio.channels.*;
-import java.nio.charset.*;
-import java.nio.file.*;
-import java.security.*;
-import java.security.acl.*;
-import java.security.cert.*;
-import java.security.interfaces.*;
-import java.security.spec.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-import java.util.concurrent.locks.*;
-import java.util.function.*;
-import java.util.jar.*;
-import java.util.regex.*;
-import java.util.spi.*;
-import java.util.stream.*;
-import java.util.zip.*;
 
 /**
  * Nutzen Sie diese Klasse um den HTTP Server zu implementieren. Sie duerfen
@@ -49,27 +26,25 @@ public class HttpServer
      * Der Port, auf dem der HTTP-Server lauschen soll.
      */
     private int port;
-    private final String ip = "127.0.0.1";
-    private final InetSocketAddress address = new InetSocketAddress(this.ip, this.port);
+    private final String IP = "127.0.0.1";
+    private final InetSocketAddress ADDRESS;
 
     private ServerSocket serverSocket;
 
     /**
-     * Beispiel Dokumentation fuer diesen Konstruktor:
-     * Der Server wird initialisiert und der gewuenschte Port
-     * gespeichert.
+     * Constructor.
+     * Sets the server's port to the value provided by the user. Creates then an InetSocketAddress object
+     * with the provided port and the IP provided in this class' attributes
      * 
      * @param port
-     *            der Port auf dem der HTTP-Server lauschen soll
+     *            port the server will listen on
      */
     HttpServer(int port)
     {
         this.port = port;
+        this.ADDRESS = new InetSocketAddress(this.IP, this.port);
     }
-    
-    /**
 
-     */
     void startServer()
     {
         try
@@ -78,8 +53,9 @@ public class HttpServer
             Thread thread;
 
             this.serverSocket = new ServerSocket(this.port);
-            this.serverSocket.bind(this.address);
+            this.serverSocket.bind(this.ADDRESS);
 
+            // loops the listening method in order to stay alive
             while (true)
             {
                 Socket incoming = this.serverSocket.accept();
