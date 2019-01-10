@@ -2,30 +2,11 @@ package edu.udo.cs.rvs;
 
 import java.io.*;
 import java.lang.*;
-import java.lang.annotation.*;
-import java.lang.invoke.*;
-import java.lang.ref.*;
-import java.lang.reflect.*;
 import java.net.*;
 import java.nio.*;
-import java.nio.channels.*;
-import java.nio.charset.*;
-import java.nio.file.*;
 import java.security.*;
-import java.security.acl.*;
-import java.security.cert.*;
-import java.security.interfaces.*;
-import java.security.spec.*;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-import java.util.concurrent.locks.*;
-import java.util.function.*;
-import java.util.jar.*;
-import java.util.regex.*;
-import java.util.spi.*;
-import java.util.stream.*;
-import java.util.zip.*;
+import java.text.*;
 
 public class ConnectionHandler implements Runnable
 {
@@ -52,9 +33,57 @@ public class ConnectionHandler implements Runnable
      */
     public void run()
     {
-        // TODO: 2018-12-21 input stream/outputstream, parse input, create output, close socket
+        try
+        {
+            InputStream inputStream = client.getInputStream();
+            OutputStream outputStream = client.getOutputStream();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
+    }
 
+    /**
+     * Method to read the incoming HTTP request.
+     * Reads the inputStream line by line, splitting each line by the ':' separator
+     * and puts the values into a hashtable for better reading later on.
+     *
+     * @param request
+     *               the InputStream object received by the socket
+     *
+     * @return Hashtable
+     *               the hashtable contains the request header split into a better readable format.
+     *         null
+     *               when the reading fails
+     */
+    private Hashtable<String, String> readRequest(InputStream request)
+    {
+        try
+        {
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(request));
+            String line = null;
+            String[] requestLine;
+            Hashtable<String, String> hashtable = new Hashtable<>();
+
+            while ((line = bufferedReader.readLine()) != null)
+            {
+                requestLine = line.split("(?<=:)");
+                if (requestLine != null)
+                {
+                    hashtable.put(requestLine[0], requestLine[1]);
+                }
+            }
+
+            return hashtable;
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
 
