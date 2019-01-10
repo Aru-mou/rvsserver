@@ -30,7 +30,7 @@ public class HttpServer
      * Der Port, auf dem der HTTP-Server lauschen soll.
      */
     private int port;
-    private final String IP = "127.0.0.1";
+    private final String IP = "localhost";
     private final InetSocketAddress ADDRESS;
 
     private ServerSocket serverSocket;
@@ -57,7 +57,6 @@ public class HttpServer
             Thread thread;
 
             this.serverSocket = new ServerSocket(this.port);
-            this.serverSocket.bind(this.ADDRESS);
 
             // loops the listening method in order to stay alive
             while (true)

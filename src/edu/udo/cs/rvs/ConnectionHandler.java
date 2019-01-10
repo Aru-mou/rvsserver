@@ -1,5 +1,6 @@
 package edu.udo.cs.rvs;
 
+import javax.management.RuntimeOperationsException;
 import java.io.*;
 import java.lang.*;
 import java.net.*;
@@ -8,9 +9,14 @@ import java.security.*;
 import java.util.*;
 import java.text.*;
 
+import static edu.udo.cs.rvs.RequestType.*;
+
 public class ConnectionHandler implements Runnable
 {
     private Socket client;
+    private RequestType requestType;
+    private boolean isHTTP10;
+    private String path;
 
     /**
      * Constructor.
@@ -35,8 +41,22 @@ public class ConnectionHandler implements Runnable
     {
         try
         {
-            InputStream inputStream = client.getInputStream();
-            OutputStream outputStream = client.getOutputStream();
+            readRequest(client.getInputStream());
+            System.out.println();
+            System.out.println("HTTP 1.0 200 OK");
+            System.out.println("Server: RvS");
+            System.out.println("Date: Thu, 10 Jan 2019 20:03:10 GMT");
+            System.out.println("Content-Type: text/html; charset=utf8");
+            System.out.println("Content-Length: 0");
+            System.out.println("Location: http://localhost" + path);
+
+            // TODO: 2019-01-10 HTTP-Version überprüfen und entsprechenden response-code schicken (200 oder 400)
+            // TODO: 2019-01-10 Checken, ob Zieldatei/-verzeichnis existiert und entsprechend Fehlercode schicken oder halt nicht 
+            // TODO: 2019-01-10 Checken, ob Zugriff auf Zieldatei/-verzeichnis besteht 
+            // TODO: 2019-01-10 Den Response formatieren (vll in String abspeichern k.a) 
+            // TODO: 2019-01-10 Response über OutputStream zurückschicken 
+            // TODO: 2019-01-10 Socket.close() 
+
         }
         catch (IOException e)
         {
@@ -58,32 +78,49 @@ public class ConnectionHandler implements Runnable
      *         null
      *               when the reading fails
      */
-    private Hashtable<String, String> readRequest(InputStream request)
+    private void readRequest(InputStream request)
     {
         try
         {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(request));
-            String line = null;
-            String[] requestLine;
-            Hashtable<String, String> hashtable = new Hashtable<>();
+            String line;
 
-            while ((line = bufferedReader.readLine()) != null)
+            while (!(line = bufferedReader.readLine()).isEmpty())
             {
-                requestLine = line.split("(?<=:)");
-                if (requestLine != null)
-                {
-                    hashtable.put(requestLine[0], requestLine[1]);
-                }
-            }
+                System.out.println(line);
 
-            return hashtable;
+                //region GET/POST/HEAD
+                if (line.contains("GET"))
+                {
+                    requestType = GET;
+                }
+                else if (line.contains("POST"))
+                {
+                    requestType = POST;
+                }
+                else if (line.contains("HEAD"))
+                {
+                    requestType = HEAD;
+                }
+                else
+                {
+                    requestType = null;
+                }
+                //endregion
+
+                if (line.contains("HTTP/1.0"))
+                {
+                    isHTTP10 = true;
+                    path = line.split(" ")[1];
+                }
+
+            }
         }
         catch (IOException e)
         {
             e.printStackTrace();
         }
 
-        return null;
     }
 
 
