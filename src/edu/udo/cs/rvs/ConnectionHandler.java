@@ -3,8 +3,9 @@ package edu.udo.cs.rvs;
 import java.io.*;
 import java.lang.*;
 import java.net.*;
-import java.nio.*;
-import java.security.*;
+import java.nio.file.DirectoryIteratorException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.util.*;
 import java.text.*;
 
@@ -13,12 +14,15 @@ import static edu.udo.cs.rvs.ContentType.*;
 
 public class ConnectionHandler implements Runnable
 {
+
     private Socket client;
     private boolean isHTTP10;
     private String path;
     private String endOfPath;
     private ContentType contentType;
     private RequestType requestType = null;
+    private String CONTENTLENGTH = "Content-Length: 0";
+    private byte[] fileContent = null;
 
 
     /**
@@ -55,9 +59,9 @@ public class ConnectionHandler implements Runnable
 
             String DATE = "Date: " + getDate();
             String CONTENTTYPE = getContentType();
-            String CONTENTLENGTH = "Content-Length: 0";
             String RESPONSE;
             String SERVER = "Server: RvS";
+            int responseCode;
 
             if (path == null)
             {
@@ -70,39 +74,44 @@ public class ConnectionHandler implements Runnable
             if  (!isHTTP10)
             {
                 RESPONSE = "HTTP/1.0 400 Bad Request";
+                responseCode = 400;
             }
 
             //Request Type
             else if (requestType == null || contentType == otherEnd)
             {
                 RESPONSE = "HTTP/1.0 501 Not Implemented";
+                responseCode = 501;
             }
 
             //No Content
             else if (!isContent(path))
             {
                 RESPONSE = "HTTP/1.0 204 No Content";
+                responseCode = 400;
             }
 
             //Not found
-            else if (!isPath(path))
+            else if (getFile(path) == null)
             {
                 RESPONSE = "HTTP/1.0 404 Not Found";
+                responseCode = 404;
             }
 
             else
             {
                 RESPONSE = "HTTP/1.0 200 OK";
+                responseCode = 200;
             }
 
-            sendToClient(RESPONSE, SERVER, DATE, CONTENTTYPE, CONTENTLENGTH, LOCATION);
+            sendToClient(RESPONSE, SERVER, DATE, CONTENTTYPE, CONTENTLENGTH, LOCATION, responseCode);
 
 
         }
         catch (IOException e)
         {
-            //e.printStackTrace();
-            throw500();
+            e.printStackTrace();
+            //throw500();
         }
 
     }
@@ -166,17 +175,59 @@ public class ConnectionHandler implements Runnable
 
     }
 
-    private boolean isPath(String path)
+    private File getFile(String path)
     {
-        return false;    //filler
+        try
+        {
+            File file = new File(path);
+            fileContent = Files.readAllBytes(file.toPath());
+            CONTENTLENGTH = "Content-Length: " + fileContent.length;
+
+            return file;
+        }
+        catch (IOException e)
+        {
+            return null;
+        }
     }
 
     private boolean isContent(String path)
     {
-        if (contentType != noEnd)
+        if (contentType == noEnd)
+        {
+            return isIndex(path);
+        }
+        else
         {
             return true;
         }
+    }
+
+    private boolean isIndex(String path)
+    {
+        File dir = new File(path);
+        File[] directoryListing = dir.listFiles();
+        if (directoryListing != null)
+        {
+            System.out.println();
+            for (File child : directoryListing) {
+                if (child.getName().contains("(^index\\..+$)")) {
+                    if (child.isFile()) {
+                        path = path + "/" + child.getName();
+                        return true;
+                    }
+                }
+
+                System.out.println("Datei: " + child.getName());
+            }
+            System.out.println();
+        }
+        else
+        {
+            throw500();
+            throw new RuntimeException("Problem with directory listing");
+        }
+
         return false;
     }
 
@@ -257,7 +308,7 @@ public class ConnectionHandler implements Runnable
         }
     }
 
-    private void sendToClient(String response, String server, String date, String contentType, String contentLength, String location) throws IOException
+    private void sendToClient(String response, String server, String date, String contentType, String contentLength, String location, int responseCode) throws IOException
     {
         System.out.println();
         System.out.println(response);
@@ -270,6 +321,7 @@ public class ConnectionHandler implements Runnable
         System.out.println();
 
         PrintWriter pw = new PrintWriter(this.client.getOutputStream(), true);
+
         pw.println(response);
         pw.println(server);
         pw.println(date);
@@ -277,7 +329,42 @@ public class ConnectionHandler implements Runnable
         pw.println(contentLength);
         pw.println(location);
         pw.println();
-        //HIER DATEN SCHICKEN
+
+        //Data sending
+        BufferedOutputStream dataWrite = new BufferedOutputStream(this.client.getOutputStream());
+        if (requestType != HEAD)
+        {
+            switch (responseCode)
+            {
+                case 400:
+                    pw.println("Ein Fehler ist aufgetreten!\r\n400 Bad Request");
+                    break;
+                case 403:
+                    pw.println("Keine Zugriffrechte!\r\n403 Forbidden");
+                    break;
+                case 404:
+                    pw.println("Datei nicht gefunden!\r\n404 Not Found");
+                    break;
+                case 501:
+                    pw.println("Anfrage nicht unterstützt!\r\n501 Not Implemented");
+                    break;
+                case 204:
+                    pw.println("Kein Index verfügbar!\r\n204 No Content");
+                    break;
+                case 200:
+                    dataWrite.write(fileContent, 0, fileContent.length);
+                    dataWrite.flush();
+                    break;
+                case 304:
+                    dataWrite.write(fileContent, 0, fileContent.length);
+                    dataWrite.flush();
+                    break;
+                default:
+                    throw500();
+
+            }
+        }
+
         client.close();
     }
 
@@ -290,6 +377,14 @@ public class ConnectionHandler implements Runnable
             pw.println("Server: RvS");
             pw.println(getDate());
             pw.println();
+
+            System.out.println();
+            System.out.println("HTTP/1.0 500 Internal Server Error");
+            System.out.println("Server: RvS");
+            System.out.println("Date: " + getDate());
+            System.out.println();
+
+            pw.println("Interner Fehler ist aufgetreten!\r\n500 Internal Server Error");
 
             client.close();
         }
