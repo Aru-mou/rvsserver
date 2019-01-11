@@ -318,138 +318,141 @@ public class ConnectionHandler implements Runnable
 
         //Data sending
         BufferedOutputStream dataWrite = new BufferedOutputStream(this.client.getOutputStream());
-        if (requestType != HEAD)
+        switch (responseCode)
         {
-            switch (responseCode)
-            {
-                case 400:
-                    pw.println(response);
-                    pw.println(server);
-                    pw.println(date);
-                    pw.println("Content-Type: text/plain; charset=utf-8");
-                    pw.println();
-                    pw.println("Ein Fehler ist aufgetreten!\r\n400 Bad Request");
+            case 400:
+                pw.println(response);
+                pw.println(server);
+                pw.println(date);
+                pw.println("Content-Type: text/plain; charset=utf-8");
+                pw.println();
+                pw.println("Ein Fehler ist aufgetreten!\r\n400 Bad Request");
 
-                    System.out.println();
-                    System.out.println(response);
-                    System.out.println(server);
-                    System.out.println(date);
-                    System.out.println("Content-Type: text/plain; charset=utf-8");
-                    System.out.println();
-                    System.out.println();
-                    break;
-                case 403:
-                    pw.println(response);
-                    pw.println(server);
-                    pw.println(date);
-                    pw.println("Content-Type: text/plain; charset=utf-8");
-                    pw.println();
-                    pw.println("Keine Zugriffrechte!\r\n403 Forbidden");
+                System.out.println();
+                System.out.println(response);
+                System.out.println(server);
+                System.out.println(date);
+                System.out.println("Content-Type: text/plain; charset=utf-8");
+                System.out.println();
+                System.out.println();
+                break;
+            case 403:
+                pw.println(response);
+                pw.println(server);
+                pw.println(date);
+                pw.println("Content-Type: text/plain; charset=utf-8");
+                pw.println();
+                pw.println("Keine Zugriffrechte!\r\n403 Forbidden");
 
-                    System.out.println();
-                    System.out.println(response);
-                    System.out.println(server);
-                    System.out.println(date);
-                    System.out.println("Content-Type: text/plain; charset=utf-8");
-                    System.out.println();
-                    System.out.println();
-                    break;
-                case 404:
-                    pw.println(response);
-                    pw.println(server);
-                    pw.println(date);
-                    pw.println("Content-Type: text/plain; charset=utf-8");
-                    pw.println();
-                    pw.println("Datei nicht gefunden!\r\n404 Not Found");
+                System.out.println();
+                System.out.println(response);
+                System.out.println(server);
+                System.out.println(date);
+                System.out.println("Content-Type: text/plain; charset=utf-8");
+                System.out.println();
+                System.out.println();
+                break;
+            case 404:
+                pw.println(response);
+                pw.println(server);
+                pw.println(date);
+                pw.println("Content-Type: text/plain; charset=utf-8");
+                pw.println();
+                pw.println("Datei nicht gefunden!\r\n404 Not Found");
 
-                    System.out.println();
-                    System.out.println(response);
-                    System.out.println(server);
-                    System.out.println(date);
-                    System.out.println("Content-Type: text/plain; charset=utf-8");
-                    System.out.println();
-                    System.out.println();
-                    break;
-                case 501:
-                    pw.println(response);
-                    pw.println(server);
-                    pw.println(date);
-                    pw.println("Content-Type: text/plain; charset=utf-8");
-                    pw.println();
-                    pw.println("Anfrage nicht unterstützt!\r\n501 Not Implemented");
+                System.out.println();
+                System.out.println(response);
+                System.out.println(server);
+                System.out.println(date);
+                System.out.println("Content-Type: text/plain; charset=utf-8");
+                System.out.println();
+                System.out.println();
+                break;
+            case 501:
+                pw.println(response);
+                pw.println(server);
+                pw.println(date);
+                pw.println("Content-Type: text/plain; charset=utf-8");
+                pw.println();
+                pw.println("Anfrage nicht unterstützt!\r\n501 Not Implemented");
 
-                    System.out.println();
-                    System.out.println(response);
-                    System.out.println(server);
-                    System.out.println(date);
-                    System.out.println("Content-Type: text/plain; charset=utf-8");
-                    System.out.println();
-                    System.out.println();
-                    break;
-                case 204:
-                    pw.println(response);
-                    pw.println(server);
-                    pw.println(date);
-                    pw.println("Content-Type: text/plain; charset=utf-8");
-                    pw.println();
-                    pw.println("Kein Index verfügbar!\r\n204 No Content");
+                System.out.println();
+                System.out.println(response);
+                System.out.println(server);
+                System.out.println(date);
+                System.out.println("Content-Type: text/plain; charset=utf-8");
+                System.out.println();
+                System.out.println();
+                break;
+            case 204:
+                pw.println(response);
+                pw.println(server);
+                pw.println(date);
+                pw.println("Content-Type: text/plain; charset=utf-8");
+                pw.println();
+                pw.println("Kein Index verfügbar!\r\n204 No Content");
 
-                    System.out.println();
-                    System.out.println(response);
-                    System.out.println(server);
-                    System.out.println(date);
-                    System.out.println("Content-Type: text/plain; charset=utf-8");
-                    System.out.println();
-                    System.out.println();
-                    break;
-                case 200:
-                    pw.println(response);
-                    pw.println(server);
-                    pw.println(date);
-                    pw.println(contentType);
-                    pw.println(contentLength);
-                    pw.println(location);
-                    pw.println();
+                System.out.println();
+                System.out.println(response);
+                System.out.println(server);
+                System.out.println(date);
+                System.out.println("Content-Type: text/plain; charset=utf-8");
+                System.out.println();
+                System.out.println();
+                break;
+            case 200:
+                pw.println(response);
+                pw.println(server);
+                pw.println(date);
+                pw.println(contentType);
+                pw.println(contentLength);
+                pw.println(location);
+                pw.println();
 
-                    System.out.println();
-                    System.out.println(response);
-                    System.out.println(server);
-                    System.out.println(date);
-                    System.out.println(contentType);
-                    System.out.println(contentLength);
-                    System.out.println(location);
-                    System.out.println();
-                    System.out.println();
+                System.out.println();
+                System.out.println(response);
+                System.out.println(server);
+                System.out.println(date);
+                System.out.println(contentType);
+                System.out.println(contentLength);
+                System.out.println(location);
+                System.out.println();
+                System.out.println();
 
+                if (requestType != HEAD)
+                {
                     dataWrite.write(fileContent, 0, fileContent.length);
                     dataWrite.flush();
-                    break;
-                case 304:
-                    pw.println(response);
-                    pw.println(server);
-                    pw.println(date);
-                    pw.println(contentType);
-                    pw.println(contentLength);
-                    pw.println(location);
-                    pw.println();
+                }
+                break;
+            case 304:
+                pw.println(response);
+                pw.println(server);
+                pw.println(date);
+                pw.println(contentType);
+                pw.println(contentLength);
+                pw.println(location);
+                pw.println();
 
-                    System.out.println();
-                    System.out.println(response);
-                    System.out.println(server);
-                    System.out.println(date);
-                    System.out.println(contentType);
-                    System.out.println(contentLength);
-                    System.out.println(location);
-                    System.out.println();
-                    System.out.println();
+                System.out.println();
+                System.out.println(response);
+                System.out.println(server);
+                System.out.println(date);
+                System.out.println(contentType);
+                System.out.println(contentLength);
+                System.out.println(location);
+                System.out.println();
+                System.out.println();
 
+                if (requestType != HEAD)
+                {
                     dataWrite.write(fileContent, 0, fileContent.length);
                     dataWrite.flush();
-                    break;
-                default:
-                    throw500();
-                    break;
-            }
+                }
+                break;
+            default:
+                throw500();
+                break;
         }
 
         client.close();
