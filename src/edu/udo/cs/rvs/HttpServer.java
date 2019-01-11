@@ -19,12 +19,6 @@ import java.text.*;
  */
 public class HttpServer
 {
-    /**
-     * Beispiel Dokumentation fuer dieses Attribut:
-     * Dieses Attribut gibt den Basis-Ordner fuer den HTTP-Server an.
-     */
-    private static final File wwwroot = new File("wwwroot");
-
     
     /**
      * Der Port, auf dem der HTTP-Server lauschen soll.
