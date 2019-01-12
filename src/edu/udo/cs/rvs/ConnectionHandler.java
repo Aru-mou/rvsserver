@@ -15,25 +15,27 @@ import static edu.udo.cs.rvs.ContentType.*;
 public class ConnectionHandler implements Runnable
 {
 
-    //region Variables
-    private Socket client;
-    private boolean isHTTP10;
-    private String path;
-    private String endOfPath;
-    private ContentType contentType;
-    private RequestType requestType = null;
-    private String CONTENTLENGTH = "Content-Length: 0";
-    private byte[] fileContent = null;
-    private String host = "";
-    private boolean directoryExists;
+    //(caps-lock variables (I know you don't write variables this way but i wanted them obviously different from the others) are our end variables for the actual sendToClient method)
 
-    private final File HTTP_ROOT = new File("wwwroot");
+    //region Variables
+    private Socket client;                                                      //given socket for our connection
+    private boolean isHTTP10;                                                   //true if its a HTTP1.? request -> otherwise false -> 400 Bad Request (not supported HTTP version)
+    private String path;                                                        //our given request path (may be updated if we get a folder path and we can find a index.???)
+    private String endOfPath;                                                   //subString which only contains the end of the path used to determine the content type
+    private ContentType contentType;                                            //content type of the requested file (may be a unsupported type -> ContentType = otherEnd or no type (folder path) ContentType = noEnd
+    private RequestType requestType = null;                                     //GET HEAD or POST (default null)
+    private String CONTENTLENGTH = "Content-Length: 0";                         //contents length (default 0)
+    private byte[] fileContent = null;                                          //file in bytes used to get the length of the file
+    private String host = "";                                                   //host name
+    private boolean directoryExists;                                            //true if the requested file really exists -> otherwise false
+
+    private final File HTTP_ROOT = new File("wwwroot");               //The client has only access to wwwroot and it folders so we start in that folder
     //endregion
 
 
     /**
      * Constructor.
-     * Sets this class attribute to the connected client
+     * Sets this class attribute to the connected client.
      *
      * @param client
      *              the client socket provided by the server socked through s_socket.accept()
@@ -46,7 +48,7 @@ public class ConnectionHandler implements Runnable
     /**
      * This thread's main method.
      * Handles the incoming client connection, listens to input, responds to input and finally closes
-     * the connection socket.
+     * the connection socket (actual closing happens directly after sending the response in separately methods).
      *
      * @see java.lang.Runnable
      */
@@ -54,18 +56,21 @@ public class ConnectionHandler implements Runnable
     {
         try
         {
+            //saves some general information given from the start
+            //(caps-lock variables (I know you don't write variables this way but i wanted them obviously different from the others) are our end variables for the actual sendToClient method)
             readRequest(client.getInputStream());
-
-            String DATE = "Date: " + getDate();
-            String RESPONSE;
-            String SERVER = "Server: RvS";
-            String LOCATION = "Location: http://";
-            int responseCode;
+            String DATE = "Date: " + getDate();                                 //the date
+            String RESPONSE;                                                    //response-code as String in the right format ready to send
+            String SERVER = "Server: RvS";                                      //server name
+            String LOCATION = "Location: http://";                              //location which will be updated later with the path
+            int responseCode;                                                   //response-code as int for a switch-case in the senToClient method
 
             if (path == null)
             {
                 path = "/";
             }
+
+            //filters all response-codes that could happen other than 200 OK with their own method to determine
 
             //HTTP Version
             if  (!isHTTP10)
@@ -116,15 +121,10 @@ public class ConnectionHandler implements Runnable
     /**
      * Method to read the incoming HTTP request.
      * Reads the inputStream line by line, splitting each line by the ':' separator
-     * and puts the values into a hashtable for better reading later on.
+     * and saves general information to handle later operations.
      *
      * @param request
      *               the InputStream object received by the socket
-     *
-     * @return Hashtable
-     *               the hashtable contains the request header split into a better readable format.
-     *         null
-     *               when the reading fails
      */
     private void readRequest(InputStream request)
     {
@@ -154,6 +154,7 @@ public class ConnectionHandler implements Runnable
 
                 if (line.contains("HTTP/1."))
                 {
+                    //save correct path and splits end of path in a separate variable
                     isHTTP10 = true;
                     this.path = line.split(" ")[1];
                     String [] splits = path.split("(?<=/)");
@@ -178,23 +179,16 @@ public class ConnectionHandler implements Runnable
 
     }
 
-    private File getFile(String path)
-    {
-        try
-        {
-            File file = new File(HTTP_ROOT, path);
-            fileContent = Files.readAllBytes(file.toPath());
-            CONTENTLENGTH = "Content-Length: " + fileContent.length;
-
-            setContentType(file.getName());
-
-            return file;
-        }
-        catch (IOException e)
-        {
-            return null;
-        }
-    }
+    /**
+     * This method uses the given path to check if (as written in our task) response-code 204 No Content
+     * is needed.
+     *
+     * @param path
+     *              our saved path as String which may refers to a folder instead of a file object
+     * @return
+     *              returns false if we path referred to a folder and no index.??? was found -> ends in 204 No Content in the run() method
+     *              else true -> avoids 204 No Content response
+     */
 
     private boolean isContent(String path)
     {
@@ -207,6 +201,17 @@ public class ConnectionHandler implements Runnable
             return true;
         }
     }
+
+    /**
+     * Help method for "isContent". Search in the given path for a index.??? file.
+     * If one is found it also updates the path to out found index.???.
+     *
+     * @param path
+     *              given path which leads to a folder instead of a file object
+     * @return
+     *              returns false if no index.??? is found, so "isContent" can response with 204 No Content
+     *              else true
+     */
 
     private boolean isIndex(String path)
     {
@@ -235,6 +240,42 @@ public class ConnectionHandler implements Runnable
         return false;
     }
 
+    /**
+     * After "isContent" made sure our path refers to a file object (or other response-codes than 200 OK where send)
+     * this method gets the actual file to send to the client.
+     *
+     * @param path
+     *              our saved path as String which refers to a file object for sure
+     * @return
+     *              returns the file our String refers to
+     *              else null if there is no file -> will end in 404 Not Found in the run() method
+     */
+
+    private File getFile(String path)
+    {
+        try
+        {
+            File file = new File(HTTP_ROOT, path);
+            fileContent = Files.readAllBytes(file.toPath());
+            CONTENTLENGTH = "Content-Length: " + fileContent.length;
+
+            setContentType(file.getName());
+
+            return file;
+        }
+        catch (IOException e)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Method to get the date which will be send to the client, in a vivid way.
+     *
+     * @return
+     *              returns the current date
+     */
+
     private String getDate()
     {
         Calendar cal = Calendar.getInstance();
@@ -243,6 +284,13 @@ public class ConnectionHandler implements Runnable
         String Date = df.format(date);
         return Date;
     }
+
+    /**
+     * A method to get the content type in a right format, since its saved more simple.
+     *
+     * @return
+     *              returns the content type information in a String ready to send to the client
+     */
 
     private String getContentType()
     {
@@ -275,6 +323,16 @@ public class ConnectionHandler implements Runnable
             return "Content-Type: application/octet-stream";
         }
     }
+
+    /**
+     * Method to set the content type of the file our path refers to.
+     * "otherEnd" if we don't support the given content type or
+     * "noEnd" if our path refers to a folder
+     *
+     * @param string
+     *              The subString endOfPath since we only check the end ot out given path
+     *              (only the file name or the last folders name)
+     */
 
     private void setContentType(String string)
     {
@@ -311,6 +369,30 @@ public class ConnectionHandler implements Runnable
             contentType = noEnd;
         }
     }
+
+    /**
+     * The method that actually sends the response according to the response-code.
+     *
+     * @param response
+     *                  the determined response-code
+     * @param server
+     *                  our server name
+     * @param date
+     *                  the current date
+     *
+     * The following parameters are only send when needed according to the response-code
+     *
+     * @param contentType
+     *                  which content type our file to send has
+     * @param contentLength
+     *                  the length of our file to send
+     * @param location
+     *                  the path to the file to send
+     * @param responseCode
+     *                  response-code as int for the switch cases
+     * @throws IOException
+     *                  if anything fails due to our server -> 500 Internal Server Error
+     */
 
     private void sendToClient(String response, String server, String date, String contentType, String contentLength, String location, int responseCode) throws IOException
     {
@@ -419,6 +501,7 @@ public class ConnectionHandler implements Runnable
                 System.out.println();
                 System.out.println();
 
+                //we only need to send the file if the request wasn't "HEAD"
                 if (requestType != HEAD)
                 {
                     dataWrite.write(fileContent, 0, fileContent.length);
@@ -444,6 +527,7 @@ public class ConnectionHandler implements Runnable
                 System.out.println();
                 System.out.println();
 
+                //we only need to send the file if the request wasn't "HEAD"
                 if (requestType != HEAD)
                 {
                     dataWrite.write(fileContent, 0, fileContent.length);
@@ -457,6 +541,10 @@ public class ConnectionHandler implements Runnable
 
         client.close();
     }
+
+    /**
+     * Method to send a 500 Internal Server Error if any Exception occurs throughout the connection handling
+     */
 
     private void throw500()
     {

@@ -43,6 +43,10 @@ public class HttpServer
         this.ADDRESS = new InetSocketAddress(this.IP, this.port);
     }
 
+    /**
+     * The start of the communication. Waits for a incoming request and starts the ConnectionHandler in its own thread
+     */
+
     void startServer()
     {
         try
