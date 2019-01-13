@@ -27,7 +27,10 @@ public class ConnectionHandler implements Runnable
     private String CONTENTLENGTH = "Content-Length: 0";                         //contents length (default 0)
     private byte[] fileContent = null;                                          //file in bytes used to get the length of the file
     private String host = "";                                                   //host name
-    private boolean directoryExists;                                            //true if the requested file really exists -> otherwise false
+    private boolean directoryExists;                                            //true if the requested directory really exists -> otherwise false
+    private String headerDate;                                                  //date provided by the request header
+
+    DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");            //for date-formatting
 
     private final File HTTP_ROOT = new File("wwwroot");               //The client has only access to wwwroot and it folders so we start in that folder
     //endregion
@@ -56,10 +59,12 @@ public class ConnectionHandler implements Runnable
     {
         try
         {
+            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+
             //saves some general information given from the start
             //(caps-lock variables (I know you don't write variables this way but i wanted them obviously different from the others) are our end variables for the actual sendToClient method)
             readRequest(client.getInputStream());
-            String DATE = "Date: " + getDate();                                 //the date
+            String DATE;                                                        //the date
             String RESPONSE;                                                    //response-code as String in the right format ready to send
             String SERVER = "Server: RvS";                                      //server name
             String LOCATION = "Location: http://";                              //location which will be updated later with the path
@@ -93,11 +98,18 @@ public class ConnectionHandler implements Runnable
                 responseCode = 204;
             }
 
-            //Not found
+            //Not Found
             else if (getFile(path) == null)
             {
                 RESPONSE = "HTTP/1.0 404 Not Found";
                 responseCode = 404;
+            }
+
+            //Not Modified
+            else if (isFileModifiedSince(headerDate, getFile(path)))
+            {
+                RESPONSE = "HTTP/1.0 304 Not Modified";
+                responseCode = 304;
             }
 
             else
@@ -105,6 +117,10 @@ public class ConnectionHandler implements Runnable
                 RESPONSE = "HTTP/1.0 200 OK";
                 responseCode = 200;
             }
+
+            //Date formatting
+            DATE = "Date: " + dateFormat.format(getDate());
+
             LOCATION += (host + path);
             sendToClient(RESPONSE, SERVER, DATE, getContentType(), CONTENTLENGTH, LOCATION, responseCode);
 
@@ -120,7 +136,7 @@ public class ConnectionHandler implements Runnable
 
     /**
      * Method to read the incoming HTTP request.
-     * Reads the inputStream line by line, splitting each line by the ':' separator
+     * Reads the inputStream line by line, searching for certain keywords
      * and saves general information to handle later operations.
      *
      * @param request
@@ -167,14 +183,18 @@ public class ConnectionHandler implements Runnable
                 {
                     this.host = line.substring(6);
                 }
+
+                //Check for "If-Modified-Since" Header
+                if (line.contains("If-Modified-Since: "))
+                {
+                    this.headerDate = line.substring(19);
+                }
             }
         }
         catch (IOException e)
         {
             e.printStackTrace();
-            /*
-            sendToClient(RESPONSE, SERVER, DATE, CONTENTTYPE, CONTENTLENGTH, LOCATION);
-            */
+            throw500();
         }
 
     }
@@ -276,13 +296,81 @@ public class ConnectionHandler implements Runnable
      *              returns the current date
      */
 
-    private String getDate()
+    private Date getDate()
     {
         Calendar cal = Calendar.getInstance();
         Date date = cal.getTime();
-        DateFormat df = new SimpleDateFormat("dd. MMMM yyyy HH:mm:ss");
-        String Date = df.format(date);
-        return Date;
+
+        //Time conversion to GMT (HTTP dates are always expressed in GMT instead of local time)
+        TimeZone timezone = TimeZone.getDefault();
+        Date gmtDate = new Date( date.getTime() - timezone.getRawOffset());
+
+
+        //Check for daylight saving time
+        if (timezone.inDaylightTime(gmtDate))
+        {
+            Date dst = new Date(gmtDate.getTime() - timezone.getDSTSavings());
+
+            //Check if we didn't mess up conversion
+            if (timezone.inDaylightTime(dst))
+            {
+                gmtDate = dst;
+            }
+        }
+
+        //We're returning date instead of gmtDate because we convert the date now through DateFormat.
+        //Therefore, most of this method is kinda useless now
+        return date;
+    }
+
+    /**
+     * A method to determine, if the date provided in the "If-Modified-Since"-Header is further behind
+     * than the local date
+     *
+     * @param headerDate
+     *                  String parsed from the request header
+     * @param file
+     *                  The file to check
+     * @return
+     *        true
+     *                  if the file was modified since the given date
+     *        false
+     *                  else
+     */
+
+    private boolean isFileModifiedSince(String headerDate, File file)
+    {
+        try
+        {
+            //In case we have no "If-Modified-Since"-Header and thus the string is null, we return false to proceed to HTTP 200 check
+            if (headerDate == null)
+            {
+                return false;
+            }
+
+            Date hDate = dateFormat.parse(headerDate);
+            Date fileDate = new Date(file.lastModified());
+
+            //System.out.println("hDate: " + dateFormat.format(hDate));
+            //System.out.println("fileDate: " + dateFormat.format(fileDate));
+
+            if (fileDate.after(hDate))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        catch (ParseException e)
+        {
+            e.printStackTrace();
+            throw500();
+        }
+
+        //Should never occur
+        throw new RuntimeException("Problem with try/catch - Should never occur");
     }
 
     /**
@@ -526,13 +614,6 @@ public class ConnectionHandler implements Runnable
                 System.out.println(location);
                 System.out.println();
                 System.out.println();
-
-                //we only need to send the file if the request wasn't "HEAD"
-                if (requestType != HEAD)
-                {
-                    dataWrite.write(fileContent, 0, fileContent.length);
-                    dataWrite.flush();
-                }
                 break;
             default:
                 throw500();
