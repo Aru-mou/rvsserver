@@ -30,7 +30,8 @@ public class ConnectionHandler implements Runnable
     private boolean directoryExists;                                            //true if the requested directory really exists -> otherwise false
     private String headerDate;                                                  //date provided by the request header
 
-    DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");            //for date-formatting
+    DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);            //for date-formatting
+    DateFormat dateFormat2 = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.GERMAN);            //backup for german os
 
     private final File HTTP_ROOT = new File("wwwroot");               //The client has only access to wwwroot and it folders so we start in that folder
     //endregion
@@ -351,8 +352,6 @@ public class ConnectionHandler implements Runnable
             Date hDate = dateFormat.parse(headerDate);
             Date fileDate = new Date(file.lastModified());
 
-            //System.out.println("hDate: " + dateFormat.format(hDate));
-            //System.out.println("fileDate: " + dateFormat.format(fileDate));
 
             if (fileDate.after(hDate))
             {
@@ -365,8 +364,30 @@ public class ConnectionHandler implements Runnable
         }
         catch (ParseException e)
         {
-            //returning false in case the date is formatted wrongly
-            return false;
+
+            try
+            {
+                Date hDate = dateFormat2.parse(headerDate);
+                Date fileDate = new Date(file.lastModified());
+
+
+                if (fileDate.after(hDate))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+
+            }
+            catch (ParseException e1)
+            {
+                //returning false in case the date is formatted wrongly
+                e1.printStackTrace();
+                return false;
+            }
         }
     }
 
