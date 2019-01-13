@@ -365,12 +365,9 @@ public class ConnectionHandler implements Runnable
         }
         catch (ParseException e)
         {
-            e.printStackTrace();
-            throw500();
+            //returning false in case the date is formatted wrongly
+            return false;
         }
-
-        //Should never occur
-        throw new RuntimeException("Problem with try/catch - Should never occur");
     }
 
     /**
